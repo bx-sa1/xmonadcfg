@@ -103,6 +103,7 @@ myManageHook =
   where
     cShifts =
       [ ("firefox", "web"),
+        ("qutebrowser", "web"),
         ("steam", "games"),
         ("Lutris", "games"),
         ("discord", "games"),
@@ -116,13 +117,14 @@ myManageHook =
       [ "Localsend",
         "pavucontrol",
         "Anki",
+        "zenity",
         "Pcmanfm",
         "Pcmanfm-qt",
-        "Alacritty",
         "Thunar",
-        "zenity",
         "kitty",
-        "org.wezfurlong.wezterm"
+        "Alacritty",
+        "org.wezfurlong.wezterm",
+        "com.mitchellh.ghostty"
       ]
 
     isXfce = className ^? "Xfce4"
@@ -219,8 +221,8 @@ main = do
     docks . ewmh . ewmhFullscreen $
       def
         { modMask = myModMask,
-          normalBorderColor = C.color7,
-          focusedBorderColor = C.color8,
+          normalBorderColor = C.base07,
+          focusedBorderColor = C.base08,
           borderWidth = 2,
           terminal = "xdg-terminal-exec",
           workspaces = ["home", "web", "dev", "music", "games"],
