@@ -35,6 +35,7 @@ import XMonad.Layout.DragPane
 import XMonad.Layout.FocusTracking
 import XMonad.Layout.Fullscreen
 import XMonad.Layout.IfMax
+import XMonad.Layout.MagicFocus
 import XMonad.Layout.Minimize
 import XMonad.Layout.MultiToggle
 import XMonad.Layout.MultiToggle.Instances
@@ -53,6 +54,7 @@ import qualified XMonad.StackSet as W
 import XMonad.Util.EZConfig
 import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
+import XMonad.Layout.SubLayouts
 
 reload :: X ()
 reload = spawn "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi"
@@ -71,19 +73,14 @@ myStartupHook = do
 
 myLayoutHook =
   focusTracking $
-    smartBorders $
-      avoidStruts $
-        BW.boringWindows $
-          mkToggle (single MIRROR) $
-            bsp ||| twoPane ||| full
+    avoidStruts $
+      smartBorders $
+        windowNavigation $
+          subTabbed $
+            BW.boringWindows $
+              mkToggle (single MIRROR) $
+                tall ||| full
   where
-    bsp =
-      named "BSP" $
-        myMods BSP.emptyBSP
-    twoPane =
-      named "TwoPane" $
-        myMods $
-          TwoPane delta ratio
     tall =
       named "Tall" $
         myMods $
@@ -153,7 +150,16 @@ myLogHook = do
   io $ appendFile "/tmp/wm.log" (description curL ++ "\n")
 
 myHandleEventHook :: Event -> X All
-myHandleEventHook = minimizeEventHook
+myHandleEventHook =
+  minimizeEventHook
+    <> followOnlyIf isNotMagicTall
+  where
+    isNotMagicTall = do
+      ws <- gets windowset
+      let ln = description . W.layout . W.workspace . W.current $ ws
+      case ln of
+        "MagicTall" -> return False
+        _ -> return True
 
 addKeysP :: N.Client -> [(String, X ())]
 addKeysP client =
@@ -163,37 +169,28 @@ addKeysP client =
     ("M--", removeWorkspace),
     ("M-s", windows copyToAll),
     ("M-S-s", killAllOtherCopies),
-    ("M-b", toggleScreenSpacingEnabled >> toggleWindowSpacingEnabled),
+    ("M-b", sendMessage ToggleStruts >> toggleScreenSpacingEnabled >> toggleWindowSpacingEnabled),
     ("M-C-<Space>", sendMessage (Toggle MIRROR)),
     -- movement
-    ("M-<Tab>", nextWS),
-    ("M-S-<Tab>", prevWS),
-    ("M-C-<Tab>", toggleWS),
+    ("M-<Tab>", toggleWS),
+    ("M-C-<Tab>", nextWS),
+    ("M-S-C-<Tab>", prevWS),
     ("M-j", BW.focusDown),
     ("M-k", BW.focusUp),
     ("M-m", BW.focusMaster),
     ("M-S-j", BW.swapDown),
     ("M-S-k", BW.swapUp),
-    ("M-C-j", sendMessage $ BSP.ExpandTowards D),
-    ("M-C-k", sendMessage $ BSP.ExpandTowards U),
-    ("M-C-h", sendMessage $ BSP.ExpandTowards L),
-    ("M-C-l", sendMessage $ BSP.ExpandTowards R),
-    ("M-C-S-j", sendMessage $ BSP.ShrinkFrom D),
-    ("M-C-S-k", sendMessage $ BSP.ShrinkFrom U),
-    ("M-C-S-h", sendMessage $ BSP.ShrinkFrom L),
-    ("M-C-S-l", sendMessage $ BSP.ShrinkFrom R),
-    ("M-o", sendMessage BSP.Rotate),
-    ("M-i", sendMessage BSP.Swap),
-    ("M-n", sendMessage BSP.FocusParent),
-    ("M-S-n", sendMessage BSP.MoveNode),
-    ("M-C-n", sendMessage BSP.SelectNode),
-    ("M-M1-j", sendMessage $ BSP.SplitShift Prev),
-    ("M-M1-k", sendMessage $ BSP.SplitShift Next),
-    ("M-/", sendMessage BSP.Balance),
-    ("M-S-/", sendMessage BSP.Equalize),
+    ("M-C-h", sendMessage $ pullGroup L),
+    ("M-C-l", sendMessage $ pullGroup R),
+    ("M-C-k", sendMessage $ pullGroup U),
+    ("M-C-j", sendMessage $ pullGroup D),
+    ("M-C-m", withFocused (sendMessage . MergeAll)),
+    ("M-C-u", withFocused (sendMessage . UnMerge)),
+    ("M-C-.", onGroup W.focusUp'),
+    ("M-C-,", onGroup W.focusDown'),
     -- minimize
-    ("M-C-m", withFocused minimizeWindow),
-    ("M-C-S-m", withLastMinimized maximizeWindow)
+    ("M-M1-m", withFocused minimizeWindow),
+    ("M-M1-S-m", withLastMinimized maximizeWindow)
   ]
 
 delKeysP :: [String]
