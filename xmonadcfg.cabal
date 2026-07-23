@@ -20,12 +20,12 @@ executable xmonad
     main-is:          xmonad.hs
     other-modules:  Colors
     -- other-extensions:
-    build-depends:    base ^>=4.18.3
+    build-depends:    base >=4.18
         , xmonad
         , xmonad-contrib
         , containers
-        , directory 
-        , filepath 
+        , directory
+        , filepath
         , fdo-notify
         , dbus
         , utf8-string
